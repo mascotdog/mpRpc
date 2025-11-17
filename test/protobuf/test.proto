@@ -43,7 +43,7 @@ message GetFriendListsResponse{
 }
 
 // 在prorobuf里面怎么定义描述rpc方法的类型 service
-service UserSErviceRpc{
+service UserServiceRpc{
     rpc Login(LoginRequest) returns(LoginResponse);
     rpc GetFriendLists(GetFriendListsRequest) returns(GetFriendListsResponse);
 }
