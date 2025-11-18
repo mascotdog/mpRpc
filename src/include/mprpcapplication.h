@@ -9,6 +9,7 @@ public:
     static MprpcApplication &GetInsantce();
 
     static void Init(int argc, char **argv);
+    static MprpcConfig& GetConfig();
 
 private:
     static MprpcConfig m_config;
