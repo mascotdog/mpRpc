@@ -32,7 +32,7 @@ private:
             m_methodMap; // 保存服务方法
     };
 
-    // 存储注册成功的服务对象和其服务方法的所有信息 
+    // 存储注册成功的服务对象和其服务方法的所有信息
     std::unordered_map<std::string, ServiceInfo> m_serviceMap;
 
     // 新的socket连接回调
@@ -41,6 +41,10 @@ private:
     // 已建立连接用户的读写事件回调
     void onMessage(const muduo::net::TcpConnectionPtr &conn,
                    muduo::net::Buffer *, muduo::Timestamp);
+
+    // Closure的回调操作，用于序列化rpc的响应和网络发送
+    void sendRpcResonse(const muduo::net::TcpConnectionPtr &,
+                        google::protobuf::Message *);
 };
 
 #endif // __RPCPROVIDER_H__
