@@ -9,7 +9,7 @@ void ShowArgsHelp() {
     std::cout << "format: command -i <configfiel>" << std::endl;
 }
 
-MprpcApplication &MprpcApplication::GetInsantce() {
+MprpcApplication &MprpcApplication::GetInstance() {
     static MprpcApplication instance;
     return instance;
 }

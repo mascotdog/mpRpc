@@ -1,6 +1,8 @@
 #include "rpcprovider.h"
 #include "mprpcapplication.h"
 #include "rpcheader.pb.h"
+#include "logger.h"
+
 #include <arpa/inet.h>
 
 /**
@@ -28,7 +30,7 @@ void RpcProvider::NotifyService(google::protobuf::Service *service) {
             pserviceDesc->method(i);
         std::string method_name = pmethodDesc->name();
         service_info.m_methodMap.insert({method_name, pmethodDesc});
-
+ 
         std::cout << "method_name:" << method_name << std::endl;
     }
     service_info.m_service = service;
@@ -38,8 +40,8 @@ void RpcProvider::NotifyService(google::protobuf::Service *service) {
 void RpcProvider::Run() {
 
     std::string ip =
-        MprpcApplication::GetInsantce().GetConfig().Load("rpcserverip");
-    uint16_t port = atoi(MprpcApplication::GetInsantce()
+        MprpcApplication::GetInstance().GetConfig().Load("rpcserverip");
+    uint16_t port = atoi(MprpcApplication::GetInstance()
                              .GetConfig()
                              .Load("rpcserverport")
                              .c_str());

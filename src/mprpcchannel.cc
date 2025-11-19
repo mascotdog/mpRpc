@@ -77,8 +77,8 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     }
 
     std::string ip =
-        MprpcApplication::GetInsantce().GetConfig().Load("rpcserverip");
-    uint16_t port = atoi(MprpcApplication::GetInsantce()
+        MprpcApplication::GetInstance().GetConfig().Load("rpcserverip");
+    uint16_t port = atoi(MprpcApplication::GetInstance()
                              .GetConfig()
                              .Load("rpcserverport")
                              .c_str());
