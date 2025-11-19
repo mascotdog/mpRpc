@@ -121,7 +121,7 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     // 反序列化rpc调用的响应数据
 
     if (!response->ParseFromArray(recv_buf, recv_size)) {
-        char errtxt[512] = {0};
+        char errtxt[2048] = {0};
         sprintf(errtxt, "parse error! errno:%s", recv_buf);
         controller->SetFailed(errtxt);
         close(clientfd);
