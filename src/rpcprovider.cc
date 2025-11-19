@@ -1,6 +1,7 @@
 #include "rpcprovider.h"
 #include "mprpcapplication.h"
 #include "rpcheader.pb.h"
+#include <arpa/inet.h>
 
 /**
  * service_name -> service 描述 -> service* 记录服务对象
@@ -85,9 +86,23 @@ void RpcProvider::onMessage(const muduo::net::TcpConnectionPtr &conn,
     // 网络接收的远程rpc调用请求的字符流 包含 method_name args
     std::string recv_buf = buffer->retrieveAllAsString();
 
+    if (recv_buf.size() < 4) {
+        std::cout << "invalid rpc request: too short for header size" << std::endl;
+        conn->shutdown();
+        return;
+    }
+
     // 从字符流中读取前四个字节的内容
     uint32_t header_size = 0;
-    recv_buf.copy((char *)&header_size, 4, 0);
+    recv_buf.copy(reinterpret_cast<char *>(&header_size), 4, 0);
+    header_size = ntohl(header_size);
+
+    if (recv_buf.size() < 4 + header_size) {
+        std::cout << "invalid rpc request: header_size out of range, header_size="
+                  << header_size << ", total_size=" << recv_buf.size() << std::endl;
+        conn->shutdown();
+        return;
+    }
 
     // 根据header_size读取数据头的原始字符流，反序列化数据，得到rpc请求的详细信息
     std::string rpc_header_str = recv_buf.substr(4, header_size);
@@ -105,9 +120,17 @@ void RpcProvider::onMessage(const muduo::net::TcpConnectionPtr &conn,
         // 数据头反序列化失败
         std::cout << "rpc_header_str:" << rpc_header_str << " parse error!"
                   << std::endl;
+        conn->shutdown();
+        return;
     }
 
     // 获取rpc方法参数的字符流数据s
+    if (recv_buf.size() < 4 + header_size + args_size) {
+        std::cout << "invalid rpc request: args_size out of range, args_size="
+                  << args_size << ", total_size=" << recv_buf.size() << std::endl;
+        conn->shutdown();
+        return;
+    }
     std::string args_str = recv_buf.substr(4 + header_size, args_size);
 
     // 打印调试信息

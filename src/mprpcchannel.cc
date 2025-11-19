@@ -50,9 +50,11 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
 
     // 组织待发送的rpc请求的字符串
     std::string send_rpc_str;
-    send_rpc_str.insert(0, std::string((char *)&header_size), 4); // header_size
-    send_rpc_str += rpc_header_str;                               // rpcheader
-    send_rpc_str += args_str;                                     // args
+    // 以网络字节序写入4字节的header_size
+    uint32_t header_size_net = htonl(header_size);
+    send_rpc_str.append(reinterpret_cast<char *>(&header_size_net), 4); // header_size
+    send_rpc_str += rpc_header_str;                                      // rpcheader
+    send_rpc_str += args_str;                                            // args
 
     // 打印调试信息
     std::cout << "=====================================" << std::endl;
@@ -107,9 +109,9 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     }
 
     // 反序列化rpc调用的响应数据
-    std::string response_str(recv_buf, 0, recv_size);
-    if (!response->ParseFromString(response_str)) {
-        std::cout << "parse error! response_str:" << response_str << std::endl;
+    
+    if (!response->ParseFromArray(recv_buf,recv_size)) {
+        std::cout << "parse error! response_str:" << recv_buf << std::endl;
         close(clientfd);
         return;
     }
