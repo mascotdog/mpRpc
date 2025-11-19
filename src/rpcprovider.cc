@@ -1,7 +1,8 @@
 #include "rpcprovider.h"
+#include "logger.h"
 #include "mprpcapplication.h"
 #include "rpcheader.pb.h"
-#include "logger.h"
+#include "zookeeperutil.h"
 
 #include <arpa/inet.h>
 
@@ -30,7 +31,7 @@ void RpcProvider::NotifyService(google::protobuf::Service *service) {
             pserviceDesc->method(i);
         std::string method_name = pmethodDesc->name();
         service_info.m_methodMap.insert({method_name, pmethodDesc});
- 
+
         std::cout << "method_name:" << method_name << std::endl;
     }
     service_info.m_service = service;
@@ -57,6 +58,23 @@ void RpcProvider::Run() {
                   std::placeholders::_2, std::placeholders::_3));
     // 设计muduo库的线程数量
     server.setThreadNum(4);
+
+    // 把当前rpc节点上要发布的服务全部注册到zk上面 让rcp
+    // client可以从zk上发现服务
+    ZkClient zkCli;
+    zkCli.Start();
+    // service_name 为永久性节点 method_name 为临时性节点
+    for (auto &sp : m_serviceMap) {
+        std::string service_path = "/" + sp.first;
+        zkCli.Create(service_path.c_str(), nullptr, 0);
+        for (auto &mp : sp.second.m_methodMap) {
+            std::string method_path = service_path + "/" + mp.first;
+            char method_path_data[128] = {0};
+            sprintf(method_path_data, "%s:%d", ip.c_str(), port);
+            zkCli.Create(method_path.c_str(), method_path_data,
+                         strlen(method_path_data), ZOO_EPHEMERAL);
+        }
+    }
 
     std::cout << "RpcProvider start service at ip:" << ip << " port:" << port
               << std::endl;
@@ -89,7 +107,8 @@ void RpcProvider::onMessage(const muduo::net::TcpConnectionPtr &conn,
     std::string recv_buf = buffer->retrieveAllAsString();
 
     if (recv_buf.size() < 4) {
-        std::cout << "invalid rpc request: too short for header size" << std::endl;
+        std::cout << "invalid rpc request: too short for header size"
+                  << std::endl;
         conn->shutdown();
         return;
     }
@@ -100,8 +119,9 @@ void RpcProvider::onMessage(const muduo::net::TcpConnectionPtr &conn,
     header_size = ntohl(header_size);
 
     if (recv_buf.size() < 4 + header_size) {
-        std::cout << "invalid rpc request: header_size out of range, header_size="
-                  << header_size << ", total_size=" << recv_buf.size() << std::endl;
+        std::cout
+            << "invalid rpc request: header_size out of range, header_size="
+            << header_size << ", total_size=" << recv_buf.size() << std::endl;
         conn->shutdown();
         return;
     }
@@ -129,7 +149,8 @@ void RpcProvider::onMessage(const muduo::net::TcpConnectionPtr &conn,
     // 获取rpc方法参数的字符流数据s
     if (recv_buf.size() < 4 + header_size + args_size) {
         std::cout << "invalid rpc request: args_size out of range, args_size="
-                  << args_size << ", total_size=" << recv_buf.size() << std::endl;
+                  << args_size << ", total_size=" << recv_buf.size()
+                  << std::endl;
         conn->shutdown();
         return;
     }
